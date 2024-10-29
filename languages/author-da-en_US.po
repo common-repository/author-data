@@ -1,0 +1,233 @@
+msgid ""
+msgstr ""
+"Project-Id-Version: \n"
+"Report-Msgid-Bugs-To: http://wordpress.org/tag/author-data\n"
+"POT-Creation-Date: 2009-06-04 12:37+0000\n"
+"PO-Revision-Date: \n"
+"Last-Translator: Rodolfo Martínez <drimar@gmail.com>\n"
+"Language-Team: \n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+#: author-data.php:50
+msgid "Opciones"
+msgstr "Otions"
+
+#: author-data.php:71
+msgid "Fichas de autor"
+msgstr "Author Files"
+
+#: author-data.php:124
+msgid "Datos de los autores"
+msgstr "Author Data"
+
+#: author-data.php:130
+msgid "Opciones actualizadas"
+msgstr "Otions saved"
+
+#: author-data.php:140
+msgid "Datos a visualizar"
+msgstr "View"
+
+#: author-data.php:142
+msgid "Valores actuales"
+msgstr "Present values"
+
+#: author-data.php:145
+#: author-data.php:426
+msgid "Nombre"
+msgstr "Name"
+
+#: author-data.php:148
+#: author-data.php:153
+#: author-data.php:162
+#: author-data.php:167
+#: author-data.php:176
+#: author-data.php:181
+#: author-data.php:190
+#: author-data.php:195
+#: author-data.php:205
+#: author-data.php:210
+msgid "Sí"
+msgstr "Yes"
+
+#: author-data.php:149
+#: author-data.php:154
+#: author-data.php:163
+#: author-data.php:168
+#: author-data.php:177
+#: author-data.php:182
+#: author-data.php:191
+#: author-data.php:196
+#: author-data.php:206
+#: author-data.php:211
+msgid "No"
+msgstr "No"
+
+#: author-data.php:159
+msgid "Fecha de nacimiento"
+msgstr "Date of Birth"
+
+#: author-data.php:173
+#: author-data.php:488
+msgid "Lugar de nacimiento"
+msgstr "Place of Birth"
+
+#: author-data.php:187
+#: author-data.php:518
+msgid "Sitio web"
+msgstr "Web Site"
+
+#: author-data.php:202
+msgid "Datos biográficos"
+msgstr "Bio"
+
+#: author-data.php:218
+msgid "Formato"
+msgstr "Format"
+
+#: author-data.php:224
+msgid "Tamaño nombre autor"
+msgstr "Author Name Size"
+
+#: author-data.php:248
+msgid "Color nombre autor"
+msgstr "Author Name color"
+
+#: author-data.php:253
+msgid "Negro"
+msgstr "Black"
+
+#: author-data.php:253
+msgid "Gris"
+msgstr "Grey"
+
+#: author-data.php:253
+msgid "Rojo oscuro"
+msgstr "Dark Red"
+
+#: author-data.php:253
+msgid "Naranja"
+msgstr "Oranje"
+
+#: author-data.php:253
+msgid "Verde"
+msgstr "Green"
+
+#: author-data.php:253
+msgid "Amarillo"
+msgstr "Yellow"
+
+#: author-data.php:273
+msgid "Estilo nombre autor"
+msgstr "Author Name Style"
+
+#: author-data.php:278
+msgid "Normal"
+msgstr "Normal"
+
+#: author-data.php:278
+msgid "Cursiva"
+msgstr "Italic"
+
+#: author-data.php:278
+msgid "Negrita"
+msgstr "Bold"
+
+#: author-data.php:303
+msgid "Alineación"
+msgstr "Alignment"
+
+#: author-data.php:308
+msgid "Izquierda"
+msgstr "Left"
+
+#: author-data.php:308
+msgid "Derecha"
+msgstr "Right"
+
+#: author-data.php:308
+msgid "Centro"
+msgstr "Center"
+
+#: author-data.php:308
+msgid "Justificada"
+msgstr "Justify"
+
+#: author-data.php:337
+msgid "Actualizar opciones"
+msgstr "Save options"
+
+#: author-data.php:354
+msgid "Grabar modificación"
+msgstr "Save"
+
+#: author-data.php:355
+msgid "Ver datos existentes"
+msgstr "View"
+
+#: author-data.php:356
+msgid "Eliminar"
+msgstr "Delete"
+
+#: author-data.php:357
+msgid "Limpiar"
+msgstr "Reset"
+
+#: author-data.php:358
+msgid "Confirmar"
+msgstr "Confirm"
+
+#: author-data.php:421
+msgid "Datos del autor"
+msgstr "Author Data"
+
+#: author-data.php:456
+msgid "Sin autores"
+msgstr "No authors"
+
+#: author-data.php:493
+msgid "Año"
+msgstr "Year"
+
+#: author-data.php:530
+msgid "Biografía"
+msgstr "Bio"
+
+#: author-data.php:573
+msgid "Formato de página web incorrecto"
+msgstr "Web site format incorrect"
+
+#: author-data.php:586
+msgid "Debe confirmar el borrado"
+msgstr "You must confirm the deletion"
+
+#: author-data.php:599
+msgid "Borrado"
+msgstr "Delete"
+
+#: author-data.php:799
+msgid "Página personal"
+msgstr "Personal Web Site"
+
+#: author-data.php:828
+msgid "Los autores"
+msgstr "The Authors"
+
+#. Plugin Name of an extension
+msgid "Author data"
+msgstr "Author data"
+
+#. Description of an extension
+msgid "Creates and manages a table with several data from the authors of a blog. It permits to list this data in varoius formats"
+msgstr "Creates and manages a table with several data from the authors of a blog. It permits to list this data in varoius formats"
+
+#. Author of an extension
+msgid "Rodolfo Martínez"
+msgstr "Rodolfo Martínez"
+
+#. Author URI of an extension
+msgid "http://www.escritoenelagua.com/"
+msgstr "http://www.escritoenelagua.com/"
+

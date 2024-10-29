@@ -1,0 +1,1176 @@
+﻿﻿﻿<?php
+/*
+Plugin Name: Author data
+Author: Rodolfo Martínez
+Author URI: http://www.escritoenelagua.com/
+Version: 3.1
+Description: Creates and manages a table with several data from the authors of a blog. It permits to list this data in various formats
+Plugin URI: 
+
+*/
+
+
+//Parametrizar según idioma
+$currentLocale = get_locale();
+if(!empty($currentLocale)) {
+$moFile = dirname(__FILE__) . "/languages/author-data-" . $currentLocale . ".mo";
+if(@file_exists($moFile) && is_readable($moFile)) load_textdomain('fichas', $moFile);
+}
+
+global $wpdb;
+$tabla_ficha_autor = $wpdb->prefix . "ficha_autor";
+
+
+
+
+//Insertar código en los posts para ver la lista de autores
+add_shortcode('autores-ficha', 'autor_data_shortcode');
+function autor_data_shortcode($atts) {
+      return author_data();
+}
+
+//Insertar código en los posts para ver la lista de links
+add_shortcode('autores-links', 'autor_links_shortcode');
+function autor_links_shortcode($atts) {
+      return author_links();
+}
+
+
+
+
+/* Añade link a las opciones en la página de plugins
+ * Thanks Dion Hulse -- http://dd32.id.au/wordpress-plugins/?configure-link
+ */
+function author_data_filter_plugin_actions($links, $file){
+	static $this_plugin;
+
+	if( !$this_plugin ) $this_plugin = plugin_basename(__FILE__);
+
+	if( $file == $this_plugin ){
+		$settings_link = '<a href="options-general.php?page=author-data/author-data.php">' . __('Opciones', 'fichas') . '</a>';
+		$links = array_merge( array($settings_link), $links); // before other links
+	}
+	return $links;
+}
+
+/* Añade el plugin a las Opciones de WordPress */
+function author_data_add_to_menu() {
+    add_submenu_page('options-general.php', 'Author Data', 'Author Data', 10, __FILE__, 'author_data_settings');
+add_filter('plugin_action_links', 'author_data_filter_plugin_actions', 10, 2);
+}
+add_action('admin_menu', 'author_data_add_to_menu');
+
+function author_data_menu()
+{   
+	if (function_exists('add_submenu_page')) {
+                global $wp_version;
+	        if (version_compare($wp_version, '2.6.5', '>'))
+		    $objetivo = "post-new.php";
+	        else
+		    $objetivo = "edit.php";
+		add_submenu_page($objetivo, __('Fichas de autor', 'fichas'), __('Fichas de autor', 'fichas'), 10, __FILE__, 'author_data_manage');
+         };
+add_filter('plugin_action_links', 'author_data_filter_plugin_actions', 10, 2);
+}
+
+add_action('admin_menu', 'author_data_menu');
+
+
+
+function author_data_settings() {
+   if ($_POST) {
+                if($_POST["vnombre"] == "")
+			$_POST["vnombre"] = "si";
+                if($_POST["vfecha"] == "")
+			$_POST["vfecha"] = "si";
+                if($_POST["vlugar"] == "")
+			$_POST["vlugar"] = "si";
+                if($_POST["vweb"] == "")
+			$_POST["vweb"] = "si";
+                if($_POST["vficha"] == "")
+			$_POST["vficha"] = "si";
+                if($_POST["nomtam"] == "")
+			$_POST["nomtam"] = "+1";
+                if($_POST["nomcol"] == "")
+                        $_POST["nomcol"] = "";
+                if($_POST["nomestilo"] == "")
+                        $_POST["nomestilo"] = "";
+                if($_POST["parrafo"] == "")
+                        $_POST["parrafo"] = "justify";
+                if($_POST["lista"] == "")
+                        $_POST["lista"] = "ul";
+		update_option('vnombre', $_POST['vnombre']);
+		update_option('vfecha', $_POST['vfecha']);
+		update_option('vlugar', $_POST['vlugar']);
+		update_option('vweb', $_POST['vweb']);
+		update_option('vficha', $_POST['vficha']);
+		update_option('nomtam', $_POST['nomtam']);
+		update_option('nomestilo', $_POST['nomestilo']);
+		update_option('nomcol', $_POST['nomcol']);
+		update_option('parrafo', $_POST['parrafo']);
+		update_option('lista', $_POST['lista']);
+	}
+	// Get options
+	$vnombre = get_option('vnombre');
+	$vfecha = get_option('vfecha');
+	$vlugar = get_option('vlugar');
+	$vweb = get_option('vweb');
+	$vficha = get_option('vficha');
+	$nomtam = get_option('nomtam');
+	$nomestilo = get_option('nomestilo');
+	$nomcol = get_option('nomcol');
+	$parrafo = get_option('parrafo');
+	$lista = get_option('lista');
+
+?>
+<div class="wrap">
+<h2><?php  _e('Datos de los autores', 'fichas'); ?></h2>
+
+<?php
+//Mensaje de opciones actualizadas
+	if ($_POST) {
+echo '<div id="message" class="updated fade"><p>';
+_e("Opciones actualizadas", 'fichas');
+echo '.</p></div>';
+};
+
+?>
+
+<form target="_self" method="post">
+<table width=70%>
+<tr>
+<td valign=top></td>
+<td valign=top><h3><?php _e('Datos a visualizar', 'fichas'); ?></h3></td>
+<td width=3% valign=top></td>
+<td valign=top><h3><?php _e("Valores actuales", 'fichas'); ?></h3></td>
+</tr>
+<tr>
+<td width=20% valign=top><strong><?php _e("Nombre", 'fichas'); ?>: </strong></td>
+<td valign=top>
+<input name="vnombre" type="hidden" style="width:100%;" value="<?php echo $vnombre; ?>" />
+<input type="radio" <?php if ($vnombre == 'si') echo ' checked'; ?> name="vnombre" value="si"><?php _e('Sí', 'fichas'); ?><br/>
+<input type="radio" <?php if ($vnombre == 'no') echo ' checked'; ?> name="vnombre" value="no"><?php _e('No', 'fichas'); ?>
+</td>
+<td width=3%></td> 
+<td width=20%><?php
+ if ($vnombre == "si") _e('Sí', 'fichas');
+ if ($vnombre == "no") _e('No', 'fichas');
+ ?></td>
+</tr>
+<tr><td colspan=4>&nbsp;</td></tr>
+<tr>
+<td width=20% valign=top><strong><?php _e("Fecha de nacimiento", 'fichas'); ?>: </strong></td>
+<td valign=top>
+<input name="vfecha" type="hidden" style="width:100%;" value="<?php echo $vfecha; ?>" />
+<input type="radio" <?php if ($vfecha == 'si') echo ' checked'; ?> name="vfecha" value="si"><?php _e('Sí', 'fichas'); ?><br/>
+<input type="radio" <?php if ($vfecha == 'no') echo ' checked'; ?> name="vfecha" value="no"><?php _e('No', 'fichas'); ?>
+</td>
+<td width=3%></td> 
+<td width=20%><?php
+ if ($vfecha == "si") _e('Sí', 'fichas');
+ if ($vfecha == "no") _e('No', 'fichas');
+ ?></td>
+</tr>
+<tr><td colspan=4>&nbsp;</td></tr>
+<tr>
+<td width=20% valign=top><strong><?php _e("Lugar de nacimiento", 'fichas'); ?>: </strong></td>
+<td valign=top>
+<input name="vlugar" type="hidden" style="width:100%;" value="<?php echo $vvlugar; ?>" />
+<input type="radio" <?php if ($vlugar == 'si') echo ' checked'; ?> name="vlugar" value="si"><?php _e('Sí', 'fichas'); ?><br/>
+<input type="radio" <?php if ($vlugar == 'no') echo ' checked'; ?> name="vlugar" value="no"><?php _e('No', 'fichas'); ?>
+</td>
+<td width=3%></td> 
+<td width=20%><?php
+ if ($vlugar == "si") _e('Sí', 'fichas');
+ if ($vlugar == "no") _e('No', 'fichas');
+ ?></td>
+</tr>
+<tr><td colspan=4>&nbsp;</td></tr>
+<tr>
+<td width=20% valign=top><strong><?php _e("Sitio web", 'fichas'); ?>: </strong></td>
+<td valign=top>
+<input name="vweb" type="hidden" style="width:100%;" value="<?php echo $vweb; ?>" />
+<input type="radio" <?php if ($vweb == 'si') echo ' checked'; ?> name="vweb" value="si"><?php _e('Sí', 'fichas'); ?><br/>
+<input type="radio" <?php if ($vweb == 'no') echo ' checked'; ?> name="vweb" value="no"><?php _e('No', 'fichas'); ?>
+</td>
+<td width=3%></td> 
+<td width=20%><?php
+ if ($vweb == "si") _e('Sí', 'fichas');
+ if ($vweb == "no") _e('No', 'fichas');
+ ?></td>
+</tr>
+<tr><td colspan=4>&nbsp;</td></tr>
+
+<tr>
+<td width=20% valign=top><strong><?php _e("Datos biográficos", 'fichas'); ?>: </strong></td>
+<td valign=top>
+<input name="vficha" type="hidden" style="width:100%;" value="<?php echo $vficha; ?>" />
+<input type="radio" <?php if ($vficha == 'si') echo ' checked'; ?> name="vficha" value="si"><?php _e('Sí', 'fichas'); ?><br/>
+<input type="radio" <?php if ($vficha == 'no') echo ' checked'; ?> name="vficha" value="no"><?php _e('No', 'fichas'); ?>
+</td>
+<td width=3%></td> 
+<td width=20%><?php
+ if ($vficha == "si") _e('Sí', 'fichas');
+ if ($vficha == "no") _e('No', 'fichas');
+ ?></td>
+</tr>
+<tr><td colspan=4>&nbsp;</td></tr>
+
+<tr>
+<td valign=top></td>
+<td valign=top><h3><?php _e('Formato', 'fichas'); ?></h3></td>
+<td width=3% valign=top></td>
+<td valign=top></td>
+</tr>
+
+<tr>
+<td width=20% valign=top><strong><?php _e("Tamaño nombre autor", 'fichas'); ?>: </strong></td>
+<td valign=top>
+<input name="nomtam" type="hidden" style="width:100%;" value="<?php echo $nomtam; ?>" />
+<select name="nomtam">
+<?php
+$i=8;
+while ($i<=30)
+{ 
+?>
+    <option <?php if ($nomtam==$i) echo 'selected'; ?> value="<?php echo $i; ?>"><?php echo $i; ?> </option>
+<?php 
+$i++;
+}
+?>
+                    </select>
+</td>
+<td width=3%></td> 
+<td width=20%><?php echo $nomtam; ?></td>
+</tr>
+<tr><td colspan=4>&nbsp;</td></tr>
+
+<tr>
+<td width=20$><strong><?php _e("Color nombre autor", 'fichas'); ?>: </strong></td>
+<td><input name=" nomcol" type="hidden" style="width:100%;" value="<?php echo $nomcol; ?>" />
+<select name="nomcol">
+<?php
+$color1 = array ("", "#000000", "#696969", "#8B0000", "#FF4500", "#006400", "#FFFF00", "#FFFFFF");
+$color2 = array (__("Neutro", 'fichas'), __("Negro", 'fichas'), __("Gris", 'fichas'), __("Rojo oscuro", 'fichas'), __("Naranja", 'fichas'), __("Verde", 'fichas'), __("Amarillo", 'fichas'), __("Blanco", 'fichas'));
+$i = 0;
+while ($i < 8)
+{
+?>
+                    	<option <?php if ($nomcol==$color1[$i]) echo 'selected'; ?> value="<?php echo $color1[$i]; ?>"><?php echo $color2[$i]; ?></option>
+<?php
+$i++;
+}
+?>
+                    </select>
+</td>
+<td width=3%></td>
+<td width=20%>
+<span style="background-color: <?php echo $nomcol; ?>">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span>
+</td>
+</tr>
+<tr><td colspan=4>&nbsp;</td></tr>
+
+<tr>
+<td width=20%><strong><?php _e("Estilo nombre autor", 'fichas'); ?>: </strong></td>
+<td><input name="nomestilo" type="hidden" style="width:100%;" value="<?php echo $nomestilo; ?>" />
+<select name="nomestilo">
+<?php
+$tipo1 = array ("", "em", "strong");
+$tipo2 = array (__("Normal", 'fichas'), __("Cursiva", 'fichas'), __("Negrita", 'fichas'));
+$i = 0;
+while ($i < 3)
+{
+?>
+                    	<option <?php if ($nomestilo==$tipo1[$i]) echo 'selected'; ?> value="<?php echo $tipo1[$i]; ?>"><?php echo $tipo2[$i]; ?></option>
+<?php
+$i++;
+}
+?>
+                    </select> 
+</td>
+<td width=3%></td>
+<td width=20%><?php
+$i = 0;
+while ($i < 3)
+{
+ if ($nomestilo==$tipo1[$i]) echo $tipo2[$i];
+ $i++;
+}
+ ?></td>
+</tr>
+<tr><td colspan=4>&nbsp;</td></tr>
+
+<tr>
+<td width=20%><strong><?php _e("Alineación", 'fichas'); ?>: </strong></td>
+<td><input name="parrafo" type="hidden" style="width:100%;" value="<?php echo $parrafo; ?>" />
+<select name="parrafo">
+<?php
+$parr1 = array ("left", "right", "center", "justify");
+$parr2 = array (__("Izquierda", 'fichas'), __("Derecha", 'fichas'), __("Centro", 'fichas'), __("Justificada", 'fichas'));
+$i = 0;
+while ($i < 4)
+{
+?>
+                    	<option <?php if ($parrafo==$parr1[$i]) echo 'selected'; ?> value="<?php echo $parr1[$i]; ?>"><?php echo $parr2[$i]; ?></option>
+<?php
+$i++;
+}
+?>
+                    </select> 
+</td>
+<td width=3%></td>
+<td width=20%><?php
+$i = 0;
+while ($i < 4)
+{
+ if ($parrafo==$parr1[$i]) echo $parr2[$i];
+ $i++;
+}
+ ?></td>
+</tr>
+<tr><td colspan=4>&nbsp;</td></tr>
+
+<tr>
+<td width=20%><strong><?php _e("Visualizar como<br/>(sólo para links)", 'fichas'); ?>: </strong></td>
+<td><input name="lista" type="hidden" style="width:100%;" value="<?php echo $lista; ?>" />
+<select name="lista">
+<?php
+$lista1 = array ("ul", "ol", "table");
+$lista2 = array (__("Lista", 'fichas'), __("Lista numerada", 'fichas'), __("Tabla", 'fichas'));
+$i = 0;
+while ($i < 3)
+{
+?>
+                    	<option <?php if ($lista==$lista1[$i]) echo 'selected'; ?> value="<?php echo $lista1[$i]; ?>"><?php echo $lista2[$i]; ?></option>
+<?php
+$i++;
+}
+?>
+                    </select> 
+</td>
+<td width=3%></td>
+<td width=20%><?php
+$i = 0;
+while ($i < 3)
+{
+ if ($lista==$lista1[$i]) echo $lista2[$i];
+ $i++;
+}
+ ?></td>
+</tr>
+<tr><td colspan=4>&nbsp;</td></tr>
+
+
+
+</table>
+
+<p class="submit">
+		<input name="submitted" type="hidden" value="yes" />
+		<input type="submit" name="Submit" value="<?php _e("Actualizar opciones", 'fichas'); ?>" />
+</p>
+
+</form>
+<?php 
+
+
+}
+
+
+
+/*********************************************************
+**
+**  Gestión de las fichas
+**
+***********************************************************/
+function author_data_manage() {
+               global $wpdb;
+               $tabla_ficha_autor = $wpdb->prefix . "ficha_autor";
+               install_author_data();
+
+               $n_mensaje = 0;
+               $mensajes = array ('', __("No hay datos", 'fichas'), __("Has llegado al final", 'fichas'), __("Has llegado al inicio", 'fichas'), __("Formato de página web incorrecto", 'fichas'), __("Debe confirmar el borrado", 'fichas'), __("Borrado", 'fichas'));
+
+               $grabar_tabla = __("Modificar", 'fichas');
+               $ver_tabla = __("Ver datos", 'fichas');
+               $borrar_tabla = __("Eliminar", 'fichas');
+               $limpiar = __("Limpiar", 'fichas');
+               $confirmar_borrado = __("Confirmar", 'fichas');
+               $inicio = '<<';
+               $anterior = '<';
+               $siguiente = '>';
+               $fin = '>>';
+               $ed_html = 'html';
+               $ed_visual = 'visual';
+
+               if ($_POST) {
+                   $errores = 0;
+                   if ($_POST['autores'] == "")
+                        $_POST['autores'] = '';
+                   if($_POST["fecha_nac"] == "")
+			$_POST["fecha_nac"] = "1965";
+                   if($_POST["lugar_nac"] == "")
+			$_POST["lugar_nac"] = "";
+                   if($_POST["sitio_web"] == "")
+			$_POST["sitio_web"] = "";
+                  if($_POST['ficha'] == '')
+                        $_POST['ficha'] = '';
+                  if($_POST['tipo_ed'] == '')
+                        $_POST['tipo_ed'] = $ed_html;
+                  $_POST['ficha'] = author_data_formatear($_POST['ficha']);
+
+/*****************************
+*
+* Visualiza datos existentes
+*
+*****************************/
+                   if ($_POST['Gestionar'] == $ver_tabla) {
+                       $nombre_autor = $_POST['autores'];
+                       $consulta = "SELECT user_login, fecha_nac, lugar_nac, sitio_web, ficha FROM " . $tabla_ficha_autor . " WHERE user_login = '$nombre_autor'";
+                       $datos_previos = $wpdb->get_results($consulta);
+                       if ($datos_previos) {
+                           $_POST['autores'] = $datos_previos[0]->user_login;
+                           $_POST['fecha_nac'] = $datos_previos[0]->fecha_nac;
+                           $_POST['lugar_nac'] = $datos_previos[0]->lugar_nac;
+                           $_POST['sitio_web'] = $datos_previos[0]->sitio_web;
+                           $_POST['ficha'] = $datos_previos[0]->ficha;
+                       }
+                       else {
+                           $_POST['fecha_nac'] = '1965';
+                           $_POST['lugar_nac'] = '';
+                           $_POST['sitio_web'] = '';
+                           $_POST['ficha'] = '';
+                       }
+                   }
+
+/*****************************
+*
+* Ir al inicio / final
+*
+*****************************/
+
+                   if ($_POST['Gestionar'] == $inicio || $_POST['Gestionar'] == $fin) {
+                       $nombre_autor = $_POST['autores'];
+                       if ($_POST['Gestionar'] == $inicio) {
+                           $query1_select = "SELECT usuarios.ID, usuarios.user_login as usuario_login, usuarios.display_name, usmetan.meta_value as nombre, usmetaa.meta_value as apellido";
+                           $query1_from = " FROM $wpdb->users as usuarios, $wpdb->usermeta as usmetan, $wpdb->usermeta as usmetaa";
+                           $query1_where = " WHERE usuarios.ID IN (SELECT post_author FROM $wpdb->posts) AND usuarios.ID = usmetan.user_id AND usuarios.ID = usmetaa.user_id AND usmetan.meta_key = 'first_name' AND usmetaa.meta_key ='last_name'";
+                           $query1_orderby = " ORDER BY apellido, nombre, usuarios.display_name ASC";
+                           $query1 = $query1_select . $query1_from . $query1_where . $query1_orderby;
+                       }
+                       else {
+                           $query1_select = "SELECT usuarios.ID, usuarios.user_login as usuario_login, usuarios.display_name, usmetan.meta_value as nombre, usmetaa.meta_value as apellido";
+                           $query1_from = " FROM $wpdb->users as usuarios, $wpdb->usermeta as usmetan, $wpdb->usermeta as usmetaa";
+                           $query1_where = " WHERE usuarios.ID IN (SELECT post_author FROM $wpdb->posts) AND usuarios.ID = usmetan.user_id AND usuarios.ID = usmetaa.user_id AND usmetan.meta_key = 'first_name' AND usmetaa.meta_key ='last_name'";
+                           $query1_orderby = " ORDER BY apellido DESC, nombre DESC, usuarios.display_name DESC";
+                           $query1 = $query1_select . $query1_from . $query1_where . $query1_orderby;
+                       };
+                       $us_posts = $wpdb->get_results($query1);
+                       if ($us_posts) {
+                          $nombre_login = $us_posts[0]->usuario_login;
+                          $consulta = "SELECT user_login, fecha_nac, lugar_nac, sitio_web, ficha FROM " . $tabla_ficha_autor . " WHERE user_login = '$nombre_login'";
+                          $datos_previos = $wpdb->get_results($consulta);
+                          if ($datos_previos) {
+                              $_POST['autores'] = $datos_previos[0]->user_login;
+                              $_POST['fecha_nac'] = $datos_previos[0]->fecha_nac;
+                              $_POST['lugar_nac'] = $datos_previos[0]->lugar_nac;
+                              $_POST['sitio_web'] = $datos_previos[0]->sitio_web;
+                              $_POST['ficha'] = $datos_previos[0]->ficha;
+                          }
+                          else {
+                              $_POST['autores'] = $nombre_login;
+                              $_POST['fecha_nac'] ='';
+                              $_POST['lugar_nac'] = '';
+                              $_POST['sitio_web'] = '';
+                              $_POST['ficha'] = '';
+
+                          }
+                       }
+                       else {
+                           $n_mensaje = 1;
+                     }
+                   }
+
+/*****************************
+*
+* Visualiza siguiente
+*
+*****************************/
+                   if ($_POST['Gestionar'] == $siguiente) {
+                       $nombre_autor = $_POST['autores'];
+                       $nombre = $_POST['nombre'];
+                       $apellido = $_POST['apellido'];
+                       $query1_select = "SELECT usuarios.ID, usuarios.user_login as usuario_login, usuarios.display_name, usmetan.meta_value as nombre, usmetaa.meta_value as apellido";
+                       $query1_from = " FROM $wpdb->users as usuarios, $wpdb->usermeta as usmetan, $wpdb->usermeta as usmetaa";
+                       $query1_where = " WHERE (usmetaa.meta_value > '$apellido' OR (usmetaa.meta_value = '$apellido' AND usmetan.meta_value > '$nombre')) AND usuarios.ID IN (SELECT post_author FROM $wpdb->posts) AND usuarios.ID = usmetan.user_id AND usuarios.ID = usmetaa.user_id AND usmetan.meta_key = 'first_name' AND usmetaa.meta_key ='last_name'";
+                       $query1_orderby = " ORDER BY apellido, nombre, usuarios.display_name ASC";
+                       $query1 = $query1_select . $query1_from . $query1_where . $query1_orderby;
+                       $us_posts = $wpdb->get_results($query1);
+                       if ($us_posts) {
+                          $nombre_login = $us_posts[0]->usuario_login;
+                          $consulta = "SELECT user_login, fecha_nac, lugar_nac, sitio_web, ficha FROM " . $tabla_ficha_autor . " WHERE user_login = '$nombre_login'";
+                          $datos_previos = $wpdb->get_results($consulta);
+                          if ($datos_previos) {
+                              $_POST['autores'] = $datos_previos[0]->user_login;
+                              $_POST['fecha_nac'] = $datos_previos[0]->fecha_nac;
+                              $_POST['lugar_nac'] = $datos_previos[0]->lugar_nac;
+                              $_POST['sitio_web'] = $datos_previos[0]->sitio_web;
+                              $_POST['ficha'] = $datos_previos[0]->ficha;
+                              $_POST['nombre'] = $us_posts[0]->nombre;
+                              $_POST['apellido'] = $us_posts[0]->apellido;
+                          }
+                          else {
+                              $_POST['autores'] = $nombre_login;
+                              $_POST['fecha_nac'] = '';
+                              $_POST['lugar_nac'] = '';
+                              $_POST['sitio_web'] = '';
+                              $_POST['ficha'] = '';
+
+                          }
+                       }
+                       else {
+                           $n_mensaje = 2;
+                     }
+                   }
+
+/*****************************
+*
+* Visualiza anterior
+*
+*****************************/
+                   if ($_POST['Gestionar'] == $anterior) {
+                       $nombre_autor = $_POST['autores'];
+                       $nombre = $_POST['nombre'];
+                       $apellido = $_POST['apellido'];
+                       $query1_select = "SELECT usuarios.ID, usuarios.user_login as usuario_login, usuarios.display_name, usmetan.meta_value as nombre, usmetaa.meta_value as apellido";
+                       $query1_from = " FROM $wpdb->users as usuarios, $wpdb->usermeta as usmetan, $wpdb->usermeta as usmetaa";
+                       $query1_where = " WHERE (usmetaa.meta_value < '$apellido' OR (usmetaa.meta_value = '$apellido' AND usmetan.meta_value < '$nombre')) AND usuarios.ID IN (SELECT post_author FROM $wpdb->posts) AND usuarios.ID = usmetan.user_id AND usuarios.ID = usmetaa.user_id AND usmetan.meta_key = 'first_name' AND usmetaa.meta_key ='last_name'";
+                       $query1_orderby = " ORDER BY apellido DESC, nombre DESC, usuarios.display_name DESC";
+                       $query1 = $query1_select . $query1_from . $query1_where . $query1_orderby;
+                       $us_posts = $wpdb->get_results($query1);
+                       if ($us_posts) {
+                          $nombre_login = $us_posts[0]->usuario_login;
+                          $consulta = "SELECT user_login, fecha_nac, lugar_nac, sitio_web, ficha FROM " . $tabla_ficha_autor . " WHERE user_login = '$nombre_login'";
+                          $datos_previos = $wpdb->get_results($consulta);
+                          if ($datos_previos) {
+                              $_POST['autores'] = $datos_previos[0]->user_login;
+                              $_POST['fecha_nac'] = $datos_previos[0]->fecha_nac;
+                              $_POST['lugar_nac'] = $datos_previos[0]->lugar_nac;
+                              $_POST['sitio_web'] = $datos_previos[0]->sitio_web;
+                              $_POST['ficha'] = $datos_previos[0]->ficha;
+                              $_POST['nombre'] = $us_posts[0]->nombre;
+                              $_POST['apellido'] = $us_posts[0]->apellido;
+                          }
+                          else {
+                              $_POST['autores'] = $nombre_login;
+                              $_POST['fecha_nac'] = '';
+                              $_POST['lugar_nac'] = '';
+                              $_POST['sitio_web'] = '';
+                              $_POST['ficha'] = '';
+
+                          }
+                       }
+                       else {
+                           $n_mensaje = 3;
+                     }
+                   }
+
+
+/**************************
+*
+* Limpia el formulario
+*
+***************************/
+
+                   if ($_POST['Gestionar'] == $limpiar || $_POST['Gestionar'] == $confirmar_borrado) {
+   		       //$_POST['autores'] = '';
+                       $_POST['fecha_nac'] = '1965';
+                       $_POST['lugar_nac'] = '';
+                       $_POST['sitio_web'] = '';
+                       $_POST['ficha'] = '';
+                       $_POST['confirmar'] = 'n';
+                                    }
+
+                   update_option('autores', $_POST['autores']);
+   		   update_option('fecha_nac', $_POST['fecha_nac']);
+		   update_option('lugar_nac', $_POST['lugar_nac']);
+		   update_option('sitio_web', $_POST['sitio_web']);
+		   update_option('ficha', $_POST['ficha']);
+                   update_option('tipo_ed', $_POST['tipo_ed']);
+                   update_option('nombre', $_POST['nombre']);
+                   update_option('apellido', $_POST['apellido']);
+                  
+
+             };
+
+        $autores = get_option('autores');
+        $fecha_nac = get_option('fecha_nac');
+        $lugar_nac = get_option('lugar_nac');
+        $sitio_web = get_option('sitio_web');
+        $ficha = get_option('ficha');
+        $tipo_ed = get_option('tipo_ed');
+        $nombre = get_option('nombre');
+        $apellido = get_option('apellido');
+
+
+/****************************
+*
+* Elegir tipo de editor
+*
+*****************************/
+                  
+
+                   if ($_POST['tipo_ed']) {
+                       $tipo_ed = $_POST['tipo_ed'];
+                    }
+
+                   if ($tipo_ed == $ed_visual) {
+        
+?>
+
+<script type="text/javascript" src="../wp-includes/js/tinymce/tiny_mce.js"></script>
+
+<script type="text/javascript">
+<!--
+tinyMCE.init({
+theme : "advanced",
+theme_advanced_toolbar_location : "top",
+theme_advanced_layout_manager : "SimpleLayout",
+theme_advanced_buttons1 : "undo,redo,separator,bold,italic,underline,strikethrough,separator,forecolor,fontsizeselect,separator,justifyleft,justifycenter,justifyright,justifyfull,separator,sub,sup,separator,hr,charmap,",
+theme_advanced_buttons2 : "cut,copy,paste,separator,bullist,numlist,separator,outdent,indent,separator,fontselect,separator,link,unlink,anchor,separator,image,cleanup,separator,code,removeformat,",
+theme_advanced_buttons3 : "",
+theme_advanced_toolbar_align : "left",
+theme_advanced_statusbar_location : "bottom",
+verify_html : "false",
+verify_css_classes : "false",
+plugins : "zoom,advlink,emotions,iespell,style,advhr,contextmenu,advimage,",
+mode : "exact",
+elements : "editorContent",
+valid_elements : "*[*]",
+extended_valid_elements : "*[*]",
+auto_reset_designmode : "true",
+trim_span_elements : "false",
+width : "447",
+height : "300"
+});
+-->
+</script>
+<?php
+}
+?>
+
+
+<div class="wrap">
+<h2><?php  _e('Datos del autor', 'fichas'); ?></h2>
+
+<form target="_self" method="post" name="form_gestion">
+<table width=70%>
+<tr>
+<td width=20% valign=middle><?php _e('Nombre', 'fichas'); ?>:</td>
+<td valign=top colspan=2>
+<?php
+//Obtener usuarios con posts
+global $wpdb;
+$queautor1 = array ();
+$queautor2 = array ();
+$query1_select = "SELECT usuarios.ID, usuarios.user_login, usuarios.display_name, usmetan.meta_value as nombre, usmetaa.meta_value as apellido";
+$query1_from = " FROM $wpdb->users as usuarios, $wpdb->usermeta as usmetan, $wpdb->usermeta as usmetaa";
+$query1_where = " WHERE (usuarios.ID IN (SELECT post_author FROM $wpdb->posts) OR usuarios.user_login = 'redal') AND usuarios.ID = usmetan.user_id AND usuarios.ID = usmetaa.user_id AND usmetan.meta_key = 'first_name' AND usmetaa.meta_key ='last_name'";
+$query1_orderby = " ORDER BY apellido, nombre, usuarios.display_name ASC";
+$query1 = $query1_select . $query1_from . $query1_where . $query1_orderby;
+//echo $query1;
+
+$us_posts = $wpdb->get_results($query1);
+if ($us_posts) {
+  $i = 0;
+  foreach ($us_posts as $uspost) {
+   $autores1[$i] = $uspost->user_login;
+   $autores2[$i] = $uspost->display_name;
+   $nombres[$i] = $uspost->nombre;
+   $apellidos[$i] = $uspost->apellido;
+   $i++;
+  }
+};
+$j = $i;
+?>
+<input name="autores" type="hidden" style="width:100%;" value="<?php echo $autores; ?>"/>
+<select name="autores">
+<?php
+if ($i == 0) {
+    $autores1 = array ("all");
+    $autores2 = array (__("Sin autores", 'fichas'));
+    $j = $i;
+};
+$i = 0;
+while ($i < $j)
+{
+?>
+         
+         <option <?php if ($autores==$autores1[$i]) {echo 'selected'; $nombre_vis = $autores2[$i]; $nombre = $nombres[$i]; $apellido = $apellidos[$i];} ?> value="<?php echo $autores1[$i] ?>"><?php echo $autores2[$i] ?></option>
+<?php
+$i++;
+}
+?>
+</td>
+<td>
+<input name="nombre" type="hidden" style="width:100%;" value="<?php echo $nombre; ?>"/>
+<input name="apellido" type="hidden" style="width:100%;" value="<?php echo $apellido; ?>"/>
+</td>
+<td></td>
+</tr>
+
+
+<tr><td colspan=5>&nbsp;</td></tr>
+
+<tr>
+<td width=20% valign=middle><?php _e('Lugar de nacimiento', 'fichas'); ?>:</td>
+<td valign=top width=35%>
+<input name="lugar_nac" type="hidden" style="width:100%;" value="<?php echo $lugar_nac; ?>" />
+<input name="lugar_nac" type="text" size=30 value="<?php echo $lugar_nac; ?>" />
+</td>
+<td width=5% valign=middle><?php _e('Año', 'fichas'); ?>:</td>
+<td valign=top>
+<input name="fecha_nac" type="hidden" style="width:100%;" value="<?php echo $fecha_nac; ?>" />
+<select name="fecha_nac">
+<?php 
+$i=1930;
+while ($i<=2009)
+{ ?>
+    <option <?php if ($fecha_nac==$i) echo 'selected'; ?> value="<?php echo $i; ?>"><?php echo $i; ?> </option>
+<?php 
+$i++;
+}
+?>
+                    </select>
+</td>
+<td></td>
+</tr>
+
+<tr><td colspan=5>&nbsp;</td></tr>
+
+<tr>
+<td width=20% valign=middle><?php 
+if ( ($sitio_web != '') && ((substr($sitio_web, 0, 7) != 'http://') && (substr($sitio_web, 0, 8) != 'https://')) ) {
+  echo '<font color=#8B0000><strong>* </strong></font>';
+  $errores = 1;};
+_e('Sitio web', 'fichas'); 
+?>:</td>
+<td valign=top colspan=4>
+<input name="sitio_web" type="hidden" style="width:100%;" value="<?php echo $sitio_web; 
+?>" />
+<input name="sitio_web" type="text" size=60 value="<?php if ($sitio_web == '') echo 'http://'; else echo $sitio_web; ?>" />
+</td>
+</tr>
+
+<tr><td colspan=5>&nbsp;</td></tr>
+
+<tr>
+<td width=20% valign=top><?php _e('Biografía', 'fichas'); ?>:</td>
+<td valign=top colspan=4>
+<div align=left>
+<STYLE type="text/css">
+   input.inactivo {border: none; background: #fff; color: #505050}
+   input.activo {border: none; background: #505050; color: #FFF;}
+</STYLE>
+<input name="tipo_ed" type="hidden" style="width:100%;" value="<?php echo $tipo_ed; ?>" />
+<input type="submit" class="<?php if ($tipo_ed == $ed_visual) echo 'inactivo'; else echo 'activo'; ?>" name="tipo_ed" value="<?php echo $ed_html; ?>" />
+<input type="submit" class="<?php if ($tipo_ed == $ed_html) echo 'inactivo'; else echo 'activo'; ?>"name="tipo_ed" value="<?php echo $ed_visual; ?>" />
+</div>
+<input name="ficha" type="hidden" style="width:100%;" value="<?php echo $ficha; ?>" />
+<textarea id ="editorContent" name="ficha" cols="58" rows="10"><?php echo $ficha; ?></textarea>
+
+<tr>
+<td></td>
+<td valign=top colspan=3><strong><p class="submit">
+		<input name="submitted" type="hidden" value="yes" />
+                <input type="submit" name="Gestionar" value="<?php echo $inicio; ?>" />
+                <input type="submit" name="Gestionar" value="<?php echo $anterior; ?>" />
+                <input type="submit" name="Gestionar" value="<?php echo $siguiente; ?>" />
+                <input type="submit" name="Gestionar" value="<?php echo $fin; ?>" />
+&nbsp;|&nbsp;
+		<input type="submit" name="Gestionar" value="<?php echo $grabar_tabla; ?>" />
+<?php
+             //Borrado / Confirmación
+             if ($_POST['Gestionar'] != $borrar_tabla || $errores > 0) {
+                echo '<input type="submit" name="Gestionar" value="' . $borrar_tabla . '" />';
+             }
+             else {
+                echo '<input type="submit" name="Gestionar" value="' . $confirmar_borrado . '" />';
+             }; 
+?>
+&nbsp;|&nbsp;
+                <input type="submit" name="Gestionar" value="<?php echo $ver_tabla; ?>" />
+                <input type="submit" name="Gestionar" value="<?php echo $limpiar; ?>" />
+
+
+</p></td>
+<td></td>
+</tr>
+
+</table>
+<!-- Fin de tabla de opciones -->
+
+</form>
+<?php
+             
+             
+/************************************
+*
+* Mensaje de error
+*
+************************************/
+
+             if ($_POST['Gestionar'] == $grabar_tabla && $errores > 0) {
+                     $n_mensaje = 4;
+             };
+
+/************************************
+*
+* Mensaje de confirmación de borrado
+*
+************************************/
+
+             if ($_POST['Gestionar'] == $borrar_tabla && $errores == 0) {
+                     $n_mensaje = 5;
+             };
+
+
+/*************************************
+*
+*  Borrar una fila
+*
+**************************************/
+             if ($_POST['Gestionar'] == $confirmar_borrado && $errores == 0) {
+                   author_data_borrar($autores);
+                   $n_mensaje = 6;
+                   $_POST['fecha_nac'] = '1965';
+                   $_POST['lugar_nac'] = '';
+                   $_POST['sitio_web'] = '';
+                   $_POST['ficha'] = '';
+                   $_POST['confirmar'] = 'n';
+             };
+
+
+             
+/************************************
+*
+* Actualiza la tabla
+*
+*************************************/
+
+             if ($_POST['Gestionar'] == $grabar_tabla && $errores == 0) {
+               //Obtener nombre y apellidos
+               $consulta_select = "SELECT usmeta.user_id, usmeta.meta_key, usmeta.meta_value as nombre, usmetaa.meta_value as apellido";
+     $consulta_from = " FROM $wpdb->users as usuarios, $wpdb->usermeta as usmeta,  $wpdb->usermeta as usmetaa";
+     $consulta_where = " WHERE usuarios.user_login = '$autores' AND usuarios.ID = usmeta.user_id AND usuarios.ID = usmetaa.user_id  AND usmeta.meta_key = 'first_name' AND usmetaa.meta_key ='last_name'";
+      $consulta = $consulta_select . $consulta_from . $consulta_where;
+      $nombre_ap = $wpdb->get_results($consulta);
+      $nombre = $nombre_ap[0]->nombre;
+      $apellidos = $nombre_ap[0]->apellido;
+      //echo '<br />Nombre: ' . $nombre . ' ' . $apellidos;
+      author_data_actualizar(0, $autores, $nombre, $apellidos, $nombre_vis, $fecha_nac, $lugar_nac, $sitio_web, $ficha);
+      
+             }
+
+/*************************************
+*
+* Visualiza mensaje si lo hay
+*
+**************************************/
+      if ($n_mensaje != 0) {
+	
+            echo '<div id="message" class="updated fade"><p>';
+            echo $mensajes[$n_mensaje];
+            echo '.</p></div>';}
+}
+
+
+
+/*********************************
+*
+* Compatabilidad html
+*
+**********************************/
+function author_data_formatear($ficha) {
+       $longitud = strlen($ficha);
+       $ficha_aux = array ();
+       $j=0;
+       for ($i=0;$i<=$longitud;$i++) {
+          if (substr($ficha,$i,1) == '"') {
+              $ficha_aux[$j] = '&';
+              $j++;
+              $ficha_aux[$j] = 'q';
+              $j++;
+              $ficha_aux[$j] = 'u';
+              $j++;
+              $ficha_aux[$j] = 'o';
+              $j++;
+              $ficha_aux[$j] = 't';
+              $j++;
+              $ficha_aux[$j] = ';';
+              $j++;
+          }
+          else {
+              $ficha_aux[$j] = substr($ficha,$i,1);
+               $j++;
+          }
+       }
+       $ficha = implode('', $ficha_aux);
+       return $ficha;
+
+}
+
+
+function install_author_data(){
+   global $wpdb;
+   $tabla_ficha_autor = $wpdb->prefix . "ficha_autor";
+   if($wpdb->get_var("show tables like '$tabla_ficha_autor'") != $tabla_ficha_autor) {
+
+   $sql = "CREATE TABLE " . $tabla_ficha_autor . " (
+	      ID int(5) unsigned NOT NULL auto_increment,
+              user_login varchar(60) NOT NULL default '',
+	      nombre varchar(30) NOT NULL default '',
+	      apellidos varchar(40) NOT NULL default '',
+              nombre_vis varchar (70) NOT NULL default '',
+              fecha_nac varchar(4) NOT NULL default '',
+              lugar_nac varchar(40) NOT NULL default '',
+              sitio_web varchar(100) NOT NULL default '',
+              ficha longtext NOT NULL default '',
+	      PRIMARY KEY  (ID, user_login) 		); 		";
+    require_once(ABSPATH . 'wp-admin/upgrade-functions.php');
+    dbDelta($sql);
+   }
+}
+
+
+function author_data_borrar($user_login) {
+    global $wpdb;
+    $tabla_ficha_autor = $wpdb->prefix . "ficha_autor";
+    $borrar = $wpdb->query("DELETE FROM " . $tabla_ficha_autor . "  WHERE user_login = '$user_login'");
+}
+
+function obtener_ultimo_ID() {
+    global $wpdb;
+    $tabla_ficha_autor = $wpdb->prefix . "ficha_autor";
+    $consulta = "SELECT ID FROM " . $tabla_ficha_autor . " ORDER BY ID DESC";
+    $leer = $wpdb->get_results($consulta);
+    if ($leer) { $ultimo_ID = $leer[0]->ID;}
+    else {$ultimo_ID = 0; };
+    return $ultimo_ID;
+}
+
+function ver_si_existe($user_login) {
+    global $wpdb;
+    $tabla_ficha_autor = $wpdb->prefix . "ficha_autor";
+    $consulta = "SELECT user_login FROM " . $tabla_ficha_autor . " WHERE user_login ='$user_login'";
+    //echo '<br /> Ver si existe en tabla: ' . $consulta;
+    return $wpdb->get_var($consulta);
+}
+
+function leer_para_visualizar($user_login) {
+     global $wpdb;
+    $tabla_ficha_autor = $wpdb->prefix . "ficha_autor";
+    $consulta = "SELECT * FROM " . $tabla_ficha_autor . " WHERE user_login ='$user_login'";
+    $devuelve = $wpdb->get_results($consulta);
+    //echo '<br /> Fila actualizada: ' . $devuelve[0]->ID . ' ' . $devuelve[0]->user_login . ' ' . $devuelve[0]->fecha_nac . ' ' . $devuelve[0]->lugar_nac . ' ' . $devuelve[0]->sitio_web . ' ' . $devuelve[0]->ficha;
+}
+
+
+
+function author_data_actualizar($ID_actualizar, $user_login_actualizar, $nombre_actualizar, $apellidos_actualizar, $nombre_vis_actualizar, $fecha_nac_actualizar, $lugar_nac_actualizar, $sitio_web_actualizar, $ficha_actualizar) {
+    global $wpdb;
+    $tabla_ficha_autor = $wpdb->prefix . "ficha_autor";
+    $fila = ver_si_existe($user_login_actualizar);
+    		if (!$fila){
+                       //Obtener siguiente id
+                       $ultimo_ID = obtener_ultimo_ID();
+                       //Echo '<br />Ultimo ID en la tabla ' . $ultimo_ID;
+                       $ID_actualizar = $ultimo_ID + 1;
+
+			$insertar = $wpdb->query("INSERT INTO " . $tabla_ficha_autor . "  VALUES ($ID_actualizar, '$user_login_actualizar', '$nombre_actualizar', '$apellidos_actualizar', '$nombre_vis_actualizar', '$fecha_nac_actualizar', '$lugar_nac_actualizar', '$sitio_web_actualizar', '$ficha_actualizar')") or die("Failed Query of " . $insertar);
+//echo '<br /> Insertar: ' . $insertar;
+		}	
+                else {
+
+                        $actualizar = $wpdb->query("UPDATE " . $tabla_ficha_autor . " SET fecha_nac = '$fecha_nac_actualizar', lugar_nac = '$lugar_nac_actualizar', sitio_web = '$sitio_web_actualizar', ficha = '$ficha_actualizar'  WHERE user_login = '$user_login_actualizar'");
+/*
+$actualizar = "UPDATE " . $tabla_ficha_autor . " SET fecha_nac = '$fecha_nac_actualizar', lugar_nac = '$lugar_nac_actualizar', sitio_web = '$sitio_web_actualizar', ficha = '$ficha_actualizar'  WHERE user_login = '$user_login_actualizar'";
+echo '<br/>' . $actualizar;
+mysql_db_query(drimar_com, $actualizar) or die("Failed Query of " . $actualizar);
+*/
+		}
+                leer_para_visualizar($user_login_actualizar);
+                
+}
+
+
+$vnombre = get_option('vnombre');
+$vfecha = get_option('vfecha');
+$vlugar = get_option('vlugar');
+$vweb = get_option('vweb');
+$vficha = get_option('vficha');
+$nomtam = get_option('nomtam');
+$nomestilo = get_option('nomestilo');
+$nomcol = get_option('nomcol');
+$parrafo = get_option('parrafo');
+$lista = get_option('lista');
+
+function author_data() {
+    global $vnombre;
+    global $vfecha;
+    global $vlugar;
+    global $vweb;
+    global $vficha;
+    global $nomtam;
+    global $nomestilo;
+    global $nomcol;
+    global $parrafo;
+    global $lista;
+    global $wpdb;
+    $tabla_ficha_autor = $wpdb->prefix . "ficha_autor";
+    $consulta = "SELECT ID, user_login, nombre, apellidos, fecha_nac, lugar_nac, sitio_web, ficha FROM " . $tabla_ficha_autor . " ORDER BY apellidos ASC, nombre ASC";
+    $listado = $wpdb->get_results($consulta);
+    if ($listado) {
+
+       if ($nomestilo == 'strong') {
+           $peso = 'bold';
+           $tipo = 'normal';
+       }
+       else {
+            $peso = 'normal';
+            $tipo = $nomestilo;
+       }
+       echo '<STYLE type="text/css">';
+       echo '#nombre{font-style:' . $tipo .';font-style:' . $tipo .';font-weight:'. $peso .';';
+       if ($nomcolor != "") echo 'font-color:'. $nomcolor .';';
+       echo '}';
+       echo '#datos{font-size: 12px;text-align:' . $parrafo . ';font-style:normal;font-weight:normal;}';
+       echo '</STYLE>';
+
+       foreach($listado as $fila) {
+            $ID = $fila->ID;
+            $usuario = $fila->user_login;
+            $nombre = $fila->nombre;
+            $apellidos = $fila->apellidos;
+            $fecha_nac = $fila->fecha_nac;
+            $lugar_nac = $fila->lugar_nac;
+            $sitio_web = $fila->sitio_web;
+            $ficha = $fila->ficha;
+            //Comprobar si tiene posts publicados
+            if ($usuario != 'redal') {
+                $consulta = "SELECT 1 FROM $wpdb->users WHERE user_login = '$usuario' AND ID IN (SELECT post_author FROM $wpdb->posts WHERE post_status = 'publish')";
+                $publicado = $wpdb->get_results($consulta); 
+            }
+            else $publicado[0] = '1';
+            if ($publicado && $ficha != '') {
+               //Formatear nombre
+               if ($vnombre == "si") {
+                  $linea_nombre = '<div id=nombre>'. $nombre . ' ' . $apellidos . '</div>'; 
+               }
+               else {
+                  $linea_nombre = '';
+               }
+               //Formatear fecha y lugar de nacimiento
+               $linea_fecha = '<div id=datos>';
+               if ($vlugar == "si") {
+                     $linea_fecha = $linea_fecha . $lugar_nac;
+               }
+               if ($vfecha == "si") {
+                  if ($lugar_nac != '') {
+                     $linea_fecha = $linea_fecha . ', ' . $fecha_nac;
+                  }
+                  else {
+                     $linea_fecha = $linea_fecha . $fecha_nac;
+                  }
+               }
+               $linea_fecha =  $linea_fecha . '</div>';
+               //Formatear página web
+               if ($vweb == "si" && $sitio_web != "") {
+                   $linea_web = '<div id=datos><a href="' . $sitio_web . '" target=_blank>' . __("Página personal", "fichas") .'</a></div>';
+               }
+               else {
+                   $linea_web = '';
+               }
+               //Formatear ficha biográfica
+               if ($vficha == "si") {
+                   $linea_ficha = '<div id=datos>' . $ficha . '</div>';
+               }
+               else {
+                   $linea_ficha = '';
+               }
+               //Visualizar
+               echo $linea_nombre;
+               echo $linea_fecha;
+               echo $linea_web;
+               echo $linea_ficha;
+               echo '<p> </p>';
+            }
+       }
+    };
+}
+
+function author_links() {
+    global $lista;
+    global $nomtam;
+    global $nomestilo;
+    global $nomcol;
+    $alfabeto = array ('A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'Ñ', 'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'X', 'Y', 'Z');
+   global $wpdb;
+   $tabla_ficha_autor = $wpdb->prefix . "ficha_autor";
+
+   echo '<h2>' . __('Los autores', 'fichas')  . '</h2>';
+
+   echo '<' . $lista . '>';
+   
+   foreach ($alfabeto as $alfa) {
+		$letra = $alfa;
+		$consulta = "SELECT ID, user_login, nombre, apellidos, fecha_nac, lugar_nac, sitio_web, ficha FROM " . $tabla_ficha_autor . " WHERE substr(apellidos, 1, 1) = '" . $letra . "' ORDER BY apellidos ASC, nombre ASC";
+		$listado = $wpdb->get_results($consulta);
+		$primero = 's';
+                $ficha = $listado[0]->ficha;
+		$cabeceras = 'n';
+		if ($listado) {
+				foreach($listado as $fila) {
+						$ID = $fila->ID;
+						$usuario = $fila->user_login;
+						$nombre = $fila->nombre;
+						$apellidos = $fila->apellidos;
+						$sitio_web = $fila->sitio_web;
+						//Comprobar si tiene posts publicados
+                                                if ($usuario != 'redal') {
+						   $consulta = "SELECT 1 FROM $wpdb->users WHERE user_login = '$usuario' AND ID IN (SELECT post_author FROM $wpdb->posts WHERE post_status = 'publish')";
+						   $publicado = $wpdb->get_results($consulta); 
+                                                }
+                                                else $publicado[0] = '1';
+						if (($publicado) && (substr($sitio_web, 8, 1) != ' ')) {
+							if ($primero == 's') {
+                                                           if ($lista != 'table') {
+								echo '<li><h2>' . $letra . '</h2><'. $lista . '>'; 
+                                                            }
+                                                            else {
+                                                                echo '<tr><td colspan=2><h2>' . $letra . '</h2></td></tr>';
+                                                            }
+							    $primero = 'n';
+							    $cabeceras = 's';
+
+							}
+                                                        if ($lista != 'table') {
+							   echo '<li><a href="'. $sitio_web . '" target=_blank>'. $nombre . ' ' . $apellidos . '</a></li>';
+                                                        }
+                                                        else {
+							   echo '<tr><td width=10%></td><td><a href="'. $sitio_web . '" target=_blank>'. $nombre . ' ' . $apellidos . '</a></td></tr>';
+                                                        }
+						}
+				}
+		}
+		if ($cabeceras == 's' && $lista != 'table') {
+						echo '</'. $lista . '></li>';
+		}
+   }
+   echo '</' . $lista . '>';
+}
+
+
+//add_action('template_redirect', 'author_data_actualizar');
+register_activation_hook( __FILE__, 'install_author_data' );
+
+?>
